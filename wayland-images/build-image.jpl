@@ -1,0 +1,34 @@
+def img_name = "${env.PLATFORM}-wayland-${env.ARCH}"
+def dir_name = "${img_name}-${STAMP}"
+
+stage("Generating Dockerfile") {
+  sh(script: "./wayland-images/gen-dockerfile.sh ${env.DOCKER_REGISTRY} ${env.PLATFORM} ${env.ARCH} ${STAMP} ${dir_name}")
+}
+
+def img_wl
+
+stage("Building Wayland image") {
+  docker.withRegistry("${env.DOCKER_REGISTRY_URI_SCHEME}://${env.DOCKER_REGISTRY}", env.DOCKER_REGISTRY_CREDENTIALS) {
+    /*
+     * We use --no-cache, as Docker sees steps like 'apt-get update' as being
+     * idempotent, rather than temporally-bound.
+     */
+    img_wl = docker.build("${img_name}:${STAMP}", "--no-cache ${dir_name}")
+  }
+}
+
+stage("Pushing Wayland image") {
+  docker.withRegistry("${env.DOCKER_REGISTRY_URI_SCHEME}://${env.DOCKER_REGISTRY}", env.DOCKER_REGISTRY_CREDENTIALS) {
+    img_wl.push()
+  }
+}
+
+stage("Testing Wayland build in new image") {
+  build(job: "wayland/build/${env.PLATFORM}-${env.ARCH}", parameters: [string(name: "STAMP", value: STAMP)], propagate: true, wait: true)
+}
+
+stage("Promoting to latest") {
+  docker.withRegistry("${env.DOCKER_REGISTRY_URI_SCHEME}://${env.DOCKER_REGISTRY}", env.DOCKER_REGISTRY_CREDENTIALS) {
+    img_wl.push("latest")
+  }
+}

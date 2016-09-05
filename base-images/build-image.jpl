@@ -1,0 +1,30 @@
+def stamp = sh(script: "date '+%Y%m%d%H%M'", returnStdout: true).trim()
+def img_name = "${env.PLATFORM}-base-${env.ARCH}"
+def dir_name = "${img_name}-${stamp}"
+def registry = "${env.DOCKER_REGISTRY_URI_SCHEME}://${env.DOCKER_REGISTRY}"
+
+stage("Generating Dockerfile") {
+  sh(script: "./base-images/gen-dockerfile.sh ${env.PLATFORM} ${env.ARCH} ${dir_name}")
+}
+
+def img_base
+
+stage("Building base image") {
+  docker.withRegistry(registry, env.DOCKER_REGISTRY_CREDENTIALS) {
+    /*
+     * We use --no-cache, as Docker sees steps like 'apt-get update' as being
+     * idempotent, rather than temporally-bound.
+     */
+    img_base = docker.build("${img_name}:${stamp}", "--no-cache ${dir_name}")
+  }
+}
+
+stage("Pushing base image") {
+  docker.withRegistry(registry, env.DOCKER_REGISTRY_CREDENTIALS) {
+    img_base.push()
+  }
+}
+
+stage("Building Wayland image") {
+  def img_wl = build(job: "docker-images/wayland-images/${env.PLATFORM}-${env.ARCH}",   parameters: [string(name: "STAMP", value: stamp)], propagate: true, wait: true)
+}

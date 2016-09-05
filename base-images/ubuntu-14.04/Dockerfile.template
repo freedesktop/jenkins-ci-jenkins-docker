@@ -1,0 +1,31 @@
+FROM @@BASE@@
+MAINTAINER Daniel Stone <daniels@collabora.com>
+
+# Don't bother us
+ENV DEBIAN_FRONTEND noninteractive
+COPY apt-dpkg-config-updates.conf /etc/apt/apt.conf.d/90-dpkg-config-updates.conf
+COPY apt-force-yes.conf /etc/apt/apt.conf.d/90-force-yes.conf
+COPY apt-no-recommends.conf /etc/apt/apt.conf.d/90-no-recommends.conf
+COPY apt-retry-lots.conf /etc/apt/apt.conf.d/90-retry-lots.conf
+
+# Pull the latest updates, if any
+COPY apt-sources.list /etc/apt/sources.list
+RUN apt-get update
+RUN apt-get dist-upgrade
+
+# Get a basic toolchain together
+RUN apt-get install build-essential autoconf automake libtool intltool git-core
+
+# Add a user for CI
+RUN adduser --disabled-password --home /scratch/jenkins --shell /bin/bash --gecos 'Jenkins build user' jenkins-build
+VOLUME "/scratch/jenkins"
+
+# git-phab
+RUN apt-get install python3 python3-appdirs python3-pip
+RUN pip3 install argcomplete
+RUN pip3 install GitPython
+RUN pip3 install phabricator
+
+WORKDIR /tmp
+RUN git clone git://anongit.freedesktop.org/git/git-phab
+RUN cp git-phab/git-phab /usr/bin/

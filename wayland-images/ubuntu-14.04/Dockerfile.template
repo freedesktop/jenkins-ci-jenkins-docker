@@ -1,0 +1,39 @@
+FROM @@REGISTRY@@/ubuntu-14.04-base-@@ARCH@@:@@STAMP@@
+MAINTAINER Daniel Stone <daniels@collabora.com>
+
+# Common dependencies
+RUN apt-get install \
+	doxygen xmlto xsltproc graphviz
+
+# libevdev dependencies
+RUN apt-get install \
+	check valgrind binutils
+
+# libinput dependencies
+RUN apt-get install \
+	libmtdev-dev libudev-dev \
+	libunwind8-dev \
+	libglib2.0-dev libgtk-3-dev
+
+# Wayland dependencies
+RUN apt-get install \
+	libffi-dev libexpat-dev libxml2-dev
+
+# wayland-protocols has no extra dependencies
+
+# Weston dependencies
+RUN apt-get install \
+	libxkbcommon-dev \
+	libpixman-1-dev libegl1-mesa-dev libgles2-mesa-dev \
+	libdrm-dev libudev-dev libgbm-dev \
+	libxcb1-dev libxcb-xfixes0-dev libxcb-composite0-dev libxcursor-dev libcairo-dev libxcb-xkb-dev \
+	libfreerdp-dev \
+	libpng-dev libjpeg-dev libwebp-dev \
+	libcolord-dev liblcms2-dev \
+	libva-dev \
+	libcairo2-dev libpango1.0-dev \
+	libpam0g-dev libdbus-1-dev libunwind8-dev \
+	libsystemd-daemon-dev libsystemd-login-dev
+
+# Clean up after ourselves
+RUN apt-get clean

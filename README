@@ -1,0 +1,51 @@
+This repository contains files for a Jenkins build pipeline, using Docker to
+build in known systems.
+
+The first tranche of jobs takes base system images (Debian, Fedora, and Ubuntu)
+from the canonical upstream Docker Hub, and adds basic toolchain packages,
+as well as a user to build under. These images are stored to a local Docker
+registry (like the Hub, but self-hosted) for later use, tagged by date.
+
+The second tranche of jobs takes these produced system images, and adds build
+dependencies for various packages. For instance, the Wayland base image will
+have all the dependencies to build libevdev, libinput, wayland,
+wayland-protocols, and weston. These images are also stored to the Docker
+registry for later use, with a stable tag. Updating the first-tranche images
+will also trigger a rebuild of these images.
+
+The third tranche of jobs uses these final produced images as a host in which
+to build the packages, e.g. Wayland. These are triggered by upstream activity,
+e.g. repository commits or code review requests. These jobs use a stable tag
+of the images produced by the second-tranche jobs; 'stability' is determined
+by running a test build of these jobs, and promoting if the builds succeed
+against the new base images.
+
+
+REQUIREMENTS
+============
+
+Jenkins 2.0:
+Pipeline and Docker plugins, Matrix job plugin
+
+jenkins-job-builder and jenkins-job-builder-pipeline forks with fixes:
+https://github.com/fooishbar/jenkins-job-builder
+https://github.com/fooishbar/jenkins-job-builder-pipeline
+
+
+JOB FLOW
+========
+
+The core entrypoint is docker-images/base-images/all, which runs in a multi-axis
+configuration. Each axis simply spawns a pipeline job named
+docker-images/base-images/$platform-$arch, which performs the actual work of
+generating a base image for that architecture through a Pipeline job defined
+in base-images/build-image.jpl. The definitions for all these jobs are in
+base-images/base-images.jjb.
+
+For each base image build, it will spawn rebuilds (with the same tag/stamp) of
+any dependent images. Currently, this is the docker-images/wayland-images/*
+group, with a core pipeline defined in wayland-images/build-image.jpl.
+
+Dependent image builds then spawn builds (e.g. wayland/build/*) within the
+container it just built, as a sanity check; if these are successful, then the
+dependent build will be promoted.

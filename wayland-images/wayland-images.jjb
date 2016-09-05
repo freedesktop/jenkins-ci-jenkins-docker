@@ -1,0 +1,62 @@
+- job-template:
+    name: docker-images/wayland-images/all
+    defaults: global
+    project-type: pipeline
+    parameters:
+      - string:
+          name: STAMP
+          description: 'Tag for base container image'
+    properties:
+      - inject:
+          properties-content: |
+            JOB_DEFINITION_GIT={job-definition-git}
+            JOB_DEFINITION_GIT_BRANCH={job-definition-git-branch}
+    pipeline:
+      script: |
+        node('docker') {{
+          git(url: env.JOB_DEFINITION_GIT, branch: env.JOB_DEFINITION_GIT_BRANCH, poll: false)
+          load "wayland-images/wayland-images-all.jpl"
+        }}
+      sandbox: false
+
+- job-template:
+    name: docker-images/wayland-images/{platform}-{arch}
+    defaults: global
+    project-type: pipeline
+    parameters:
+      - string:
+          name: STAMP
+          description: "Tag for base container image"
+    properties:
+      - inject:
+          properties-content: |
+            PLATFORM={platform}
+            ARCH={arch}
+            DOCKER_REGISTRY_URI_SCHEME={docker-registry-uri-scheme}
+            DOCKER_REGISTRY={docker-registry}
+            DOCKER_REGISTRY_CREDENTIALS={docker-registry-credentials}
+            JOB_DEFINITION_GIT={job-definition-git}
+            JOB_DEFINITION_GIT_BRANCH={job-definition-git-branch}
+    pipeline:
+      # If we run a pipeline definition directly from SCM, it's always
+      # sandboxed, which means it can do ~nothing. Work around this by
+      # loading the script manually.
+      script: |
+        node('docker') {{
+          git(url: env.JOB_DEFINITION_GIT, branch: env.JOB_DEFINITION_GIT_BRANCH, poll: false)
+          load "wayland-images/build-image.jpl"
+        }}
+      sandbox: false
+
+- project:
+    name: docker-images/wayland-images
+    defaults: base-image-axes
+    jobs:
+      - docker-images/wayland-images/{platform}-{arch}
+      - docker-images/wayland-images/all
+
+- defaults:
+    !include: base-images/base-image-axes.yaml
+
+- defaults:
+    !include: defaults.yaml

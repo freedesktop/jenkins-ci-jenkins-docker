@@ -1,0 +1,41 @@
+def img_name = "${env.PLATFORM}-wayland-${env.ARCH}:${STAMP}"
+def img_wl
+
+docker.withRegistry("${env.DOCKER_REGISTRY_URI_SCHEME}://${env.DOCKER_REGISTRY}", env.DOCKER_REGISTRY_CREDENTIALS) {
+  img_wl = docker.image("${env.DOCKER_REGISTRY}/${img_name}")
+
+  /* The Wayland test suite relies on ptrace working, but doesn't use it ... */
+  img_wl.inside("--cap-add SYS_PTRACE -v /scratch/jenkins:/scratch/jenkins") {
+    stage("wayland: git clone") {
+      git(url: "git://anongit.freedesktop.org/git/wayland/wayland", poll: false)
+      sh(script: "git clean -dxf")
+    }
+
+    /*
+     * Normally we could use the dir() {} block to change the working directory,
+     * but unfortunately we can't with Docker, cf.:
+     * https://issues.jenkins-ci.org/browse/JENKINS-33510
+     */
+    sh(script: "mkdir build")
+    stage("wayland: configure") {
+      sh(script: "autoreconf -vfi")
+      sh(script: "cd build && ../configure --prefix=/scratch/jenkins/install-wayland")
+    }
+
+    stage("wayland: build") {
+      sh(script: "make -C build")
+    }
+
+    stage("wayland: make check") {
+      ret = sh(script: "make -C build check", returnStatus: true)
+      if (ret != 0) {
+        print readFile("build/test-suite.log")
+        error(message: "Test suite failed")
+      }
+    }
+
+    stage("wayland: install") {
+      sh(script: "make -C build install")
+    }
+  }
+}

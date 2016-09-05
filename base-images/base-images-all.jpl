@@ -1,0 +1,39 @@
+def expanded = [:]
+def excluded = []
+
+my_str = readFile(file: "base-images/base-image-axes.yaml")
+
+yaml = new org.yaml.snakeyaml.Yaml()
+axis_config = yaml.load(my_str)
+yaml = null
+
+/* Sadly we can't use the map.each {} iterator in pipeline scripts yet ... */
+exclusions = axis_config["exclude-from-all"]
+for (int i = 0; exclusions && i < exclusions.size(); i++) {
+  exclusion = exclusions[i]["exclusion"]
+  platform = exclusion["platform"]
+  arch = exclusion["arch"]
+  excluded << "${platform}-${arch}"
+  println "excluding ${platform}-${arch}"
+}
+
+platform_list = axis_config["platform"]
+arch_list = axis_config["arch"]
+
+for (int i = 0; i < platform_list.size(); i++) {
+  def platform = platform_list[i]
+
+  for (int j = 0; j < arch_list.size(); j++) {
+    def arch = arch_list[j]
+    def name = "${platform}-${arch}"
+    if (excluded.contains(name)) {
+      continue;
+    }
+
+    expanded[name] = {
+      build(job: "docker-images/base-images/${name}", propagate: true, wait: true)
+    }
+  }
+}
+
+parallel expanded

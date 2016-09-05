@@ -1,0 +1,24 @@
+FROM @@BASE@@
+MAINTAINER Daniel Stone <daniels@collabora.com>
+
+# Pull the latest updates, if any
+RUN dnf --refresh -y update
+
+# Get a basic toolchain together
+RUN dnf install -y gcc glibc-devel autoconf automake libtool intltool git make
+
+# Add a user for CI
+RUN mkdir /scratch
+RUN adduser -p '!!' -m --home /scratch/jenkins --shell /bin/bash --comment 'Jenkins build user' jenkins-build
+VOLUME "/scratch/jenkins"
+
+# git-phab
+RUN dnf install python3 python3-argcomplete python3-appdirs python3-pip
+RUN pip install GitPython
+RUN pip install phabricator
+WORKDIR /tmp
+RUN git clone git://anongit.freedesktop.org/git/git-phab
+RUN cp git-phab/git-phab /usr/bin/
+
+# Clean up after ourselves
+RUN dnf clean packages

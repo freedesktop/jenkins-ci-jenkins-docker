@@ -1,0 +1,26 @@
+FROM @@BASE@@
+MAINTAINER Daniel Stone <daniels@collabora.com>
+
+# Pull the latest updates, if any
+RUN yum clean expire-cache
+RUN yum -y update
+
+# Get a basic toolchain together
+RUN yum install -y gcc glibc-devel autoconf automake libtool intltool git make
+
+# Add a user for CI
+RUN mkdir /scratch
+RUN adduser -p '!!' -m --home /scratch/jenkins --shell /bin/bash --comment 'Jenkins build user' jenkins-build
+VOLUME "/scratch/jenkins"
+
+# git-phab
+RUN yum install python
+
+# install pip, argcomplete, GitPython, python-phabricator
+
+WORKDIR /tmp
+RUN git clone git://anongit.freedesktop.org/git/git-phab
+RUN cp git-phab/git-phab /usr/bin/
+
+# Clean up after ourselves
+RUN yum clean packages

@@ -1,0 +1,38 @@
+FROM @@REGISTRY@@/centos-7-base-@@ARCH@@:@@STAMP@@
+MAINTAINER Daniel Stone <daniels@collabora.com>
+
+# Common dependencies
+RUN yum -y install \
+	doxygen xmlto libxslt graphviz
+
+# libevdev dependencies
+RUN yum -y install \
+	check valgrind binutils
+
+# libinput dependencies
+RUN yum -y install \
+	mtdev-devel systemd-devel \
+	libunwind-devel \
+	glib-devel gtk3-devel
+
+# Wayland dependencies
+RUN yum -y install \
+	libffi-devel expat-devel libxml2-devel
+
+# wayland-protocols has no extra dependencies
+
+# Weston dependencies
+RUN yum -y install \
+	libxkbcommon-devel \
+	pixman-devel mesa-libEGL-devel mesa-libGLES-devel \
+	libdrm-devel systemd-devel mesa-libgbm-devel \
+	libxcb-devel libXcursor-devel cairo-devel \
+	freerdp-devel \
+	libpng-devel libjpeg-turbo-devel libwebp-devel \
+	colord-devel lcms2-devel \
+	libva-devel \
+	pango-devel \
+	pam-devel dbus-devel libunwind-devel
+
+# Clean up after ourselves
+RUN yum clean packages

@@ -1,0 +1,13 @@
+name: global
+description: 'Do not edit this job through the web!'
+
+# Location of this Git repository
+job-definition-git: git://anongit.freedesktop.org/git/jenkins-ci/jenkins-docker
+job-definition-git-branch: master
+
+# Scheme/protocol component of Docker registry URI
+docker-registry-uri-scheme: https
+# Host component of Docker registry URI
+docker-registry: docker-registry.freedesktop.org
+# Name of Jenkins credentials for above Docker registry
+docker-registry-credentials: docker-registry-fdo
